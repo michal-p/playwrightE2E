@@ -1,5 +1,6 @@
 const { test, expect, beforeEach, describe } = require('@playwright/test')
 const { loginWith, createBlog } = require('./helper')
+const password = 'salainenQ$1'
 
 describe('Blog app', () => {
   beforeEach(async ({ page, request }) => {
@@ -10,7 +11,7 @@ describe('Blog app', () => {
       data: {
         name: 'mario',
         username: 'super',
-        password: 'Kukolainen#2'
+        password: password
       }
     })
 
@@ -24,7 +25,7 @@ describe('Blog app', () => {
 
   describe('Login', () => {
     test('succeeds with correct credentials', async ({ page }) => {
-      await loginWith(page, 'super', 'Kukolainen#2')
+      await loginWith(page, 'super', password)
       await expect(page.getByText('logged-in')).toBeVisible()
     })
 
@@ -36,12 +37,22 @@ describe('Blog app', () => {
 
   describe('When logged in', () => {
     beforeEach(async ({ page }) => {
-      await loginWith(page, 'super', 'Kukolainen#2')
+      await loginWith(page, 'super', password)
     })
 
     test('a new blog can be created', async ({ page }) => {
       await createBlog(page, { title: 'title c', author: 'bubu', url: 'www.bubu.com' })
-      await expect(page.getByText('title cbubuview')).toBeVisible()
+      await expect(page.getByText('title c', { exact: true })).toBeVisible()
+    })
+
+    test('a created blog can be liked', async ({ page }) => {
+      await createBlog(page, { title: 'title c', author: 'bubu', url: 'www.bubu.com' });
+      await page.getByRole('button', { name: 'view' }).click();
+      const previousLikes = parseInt(await page.locator('.likes .count').first().innerText(), 10);
+      await page.getByRole('button', { name: 'likes' }).click();
+      await page.getByText(previousLikes + 1).first().waitFor();
+      const actualLikes = parseInt(await page.locator('.likes .count').first().innerText(), 10);
+      await expect(actualLikes).toBe(previousLikes + 1);
     })
   })
 })
