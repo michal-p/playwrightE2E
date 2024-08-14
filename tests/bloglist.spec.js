@@ -103,7 +103,59 @@ describe('Blog app', () => {
           expect(page.locator('.blog').filter({ hasText: 'title tu' })).toHaveCount(0)
         })
       })
-     })
-    
+    })
+
+    describe('and db contains with couple of new blogs', () => {
+      beforeEach(async ({ page }) => {
+        await createBlog(page, { title: 'title 1', author: 'bubu', url: 'www.bubu.com' })
+        await createBlog(page, { title: 'title 2', author: 'bubu', url: 'www.bubu.com' })
+        await createBlog(page, { title: 'title 3', author: 'bubu', url: 'www.bubu.com' })
+        const title1 = page.locator('.blog').filter({ hasText: 'title 1' })
+        await title1.locator('button:text("view")').click()
+        await title1.locator('button:text("likes")').click()
+
+        const title2 = page.locator('.blog').filter({ hasText: 'title 2' })
+        await title2.locator('button:text("view")').click()
+        const like2 = await title2.locator('button:text("likes")')
+        await like2.click()
+        await page.waitForTimeout(100)
+        await like2.click()
+
+        const title3 = page.locator('.blog').filter({ hasText: 'title 3' })
+        await title3.locator('button:text("view")').click()
+        const like3 = await title3.locator('button:text("likes")')
+        await like3.click()
+        await page.waitForTimeout(100)
+        await like3.click()
+        await page.waitForTimeout(100)
+        await like3.click()
+
+        await page.goto('/')
+      })
+
+      // Test ověřující, že se na stránce nacházejí blogy s názvy 'title 1', 'title 2' a 'title 3' ve správném pořadí
+      test('should find blogs title1, title2 and title3 in correct order', async ({ page }) => {
+        // Čeká, až se text 'logged-in' stane viditelným
+        await page.getByText('logged-in').waitFor({ state: 'visible' })
+
+        // Vytvoření lokátorů pro jednotlivé blogy
+        const blog1 = page.locator('.blog').filter({ hasText: 'title 1' })
+        const blog2 = page.locator('.blog').filter({ hasText: 'title 2' })
+        const blog3 = page.locator('.blog').filter({ hasText: 'title 3' })
+
+        // Ověření, že existují přesně jeden blog pro každý název
+        await expect(blog1).toHaveCount(1)
+        await expect(blog2).toHaveCount(1)
+        await expect(blog3).toHaveCount(1)
+
+        // Ověření, že blogy jsou ve správném pořadí
+        const blogs = await page.locator('.blog').allTextContents()
+        const expectedOrder = ['title 3 bubuview', 'title 2 bubuview', 'title 1 bubuview']
+
+        for (let i = 0; i < expectedOrder.length; i++) {
+          expect(blogs[i]).toContain(expectedOrder[i])
+        }
+      });
+    })
   })
 })
